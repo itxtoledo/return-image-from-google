@@ -75,6 +75,17 @@ To run tests in watch mode:
 pnpm test:watch
 ```
 
+### CI/CD Setup
+
+For continuous integration environments, Puppeteer requires Chrome to be installed:
+
+```bash
+# Install Chrome for Puppeteer
+npx puppeteer browsers install chrome
+```
+
+This is automatically handled in the GitHub Actions workflow.
+
 ## Docker
 
 1. Build the Docker image:

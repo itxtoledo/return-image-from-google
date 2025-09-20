@@ -52,7 +52,7 @@ export async function initBrowser(): Promise<{ browser: Browser; page: Page }> {
   const browser = await puppeteer.launch({
     headless: true, // mudar para false para ver o browser
     // slowMo: 100, // adiciona delay entre as ações
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
   });
   
   log("Creating new page...", "INFO");
