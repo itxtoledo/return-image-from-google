@@ -190,6 +190,16 @@ export async function processRequest(req: IncomingMessage, res: ServerResponse, 
               const arrayBuffer = await imageResponse.arrayBuffer();
               const imageBuffer = Buffer.from(arrayBuffer);
               const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+              const contentLength = imageResponse.headers.get("content-length");
+              const lastModified = imageResponse.headers.get("last-modified");
+
+              // Capture original metadata
+              const originalMetadata = {
+                contentType,
+                contentLength,
+                lastModified,
+                url: nonGoogleImageUrl,
+              };
 
               // Convert image to JPG using sharp
               log("Converting image to JPG format...", "INFO");
@@ -197,16 +207,29 @@ export async function processRequest(req: IncomingMessage, res: ServerResponse, 
                 .jpeg({ quality: 80, progressive: true })
                 .toBuffer();
               
-              // Return the converted image
+              // Return the converted image with original metadata in headers
               log("Image successfully converted to JPG and sent to client", "INFO", { 
                 clientIP, 
                 size: jpgBuffer.length 
               });
               
-              res.writeHead(200, {
+              // Prepare response headers with original metadata
+              const responseHeaders: Record<string, string | number> = {
                 "Content-Type": "image/jpeg",
                 "Content-Length": jpgBuffer.length,
-              });
+                "X-Original-Content-Type": originalMetadata.contentType,
+                "X-Original-URL": originalMetadata.url,
+              };
+              
+              // Add other metadata if available
+              if (originalMetadata.contentLength) {
+                responseHeaders["X-Original-Content-Length"] = originalMetadata.contentLength;
+              }
+              if (originalMetadata.lastModified) {
+                responseHeaders["X-Original-Last-Modified"] = originalMetadata.lastModified;
+              }
+              
+              res.writeHead(200, responseHeaders);
               res.end(jpgBuffer);
             } else {
               throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
