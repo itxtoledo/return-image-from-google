@@ -80,7 +80,7 @@ export async function getNonGoogleImageUrl(page: Page): Promise<string | null> {
       'c-wiz[jsdata="deferred-vfe_uviewer_2"]',
       {
         visible: true,
-        timeout: 5000, // 5 seconds timeout for the viewer to appear
+        timeout: 3000, // Reduced from 5000 to 3000ms
       }
     );
 
@@ -166,28 +166,57 @@ export async function processRequest(req: IncomingMessage, res: ServerResponse, 
 
         // Select up to the first 10 thumbnails
         const thumbnails = await page.$$("div[data-lpage]");
-        const availableThumbnails = thumbnails.slice(0, 10);
+        let availableThumbnails = thumbnails.slice(0, 10);
 
         if (availableThumbnails.length === 0) {
           throw new Error("No image thumbnails found on the page.");
         }
 
-        // Choose a random thumbnail from the available ones
-        const randomIndex = Math.floor(Math.random() * availableThumbnails.length);
-        const randomThumbnail = availableThumbnails[randomIndex];
-
-        log(`Clicking on a random image thumbnail (index: ${randomIndex})...`, "INFO");
-        await randomThumbnail.click();
-
+        // Try up to 3 different random thumbnails from the first 10 images
         let nonGoogleImageUrl: string | null = null;
-        for (let i = 0; i < 4; i++) {
-          nonGoogleImageUrl = await getNonGoogleImageUrl(page);
+        
+        // Create an array of indices and shuffle them
+        const indices = Array.from({ length: Math.min(10, availableThumbnails.length) }, (_, i) => i);
+        // Simple shuffle algorithm
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        
+        // Try up to 3 different thumbnails (or fewer if not enough available)
+        const maxAttempts = Math.min(3, indices.length);
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          const randomIndex = indices[attempt];
+          const randomThumbnail = availableThumbnails[randomIndex];
+
+          log(`Clicking on a random image thumbnail (index: ${randomIndex}, attempt: ${attempt + 1})...`, "INFO");
+          await randomThumbnail.click();
+
+          // Try to get a non-Google image URL up to 2 times for this thumbnail
+          for (let i = 0; i < 2; i++) {
+            nonGoogleImageUrl = await getNonGoogleImageUrl(page);
+            if (nonGoogleImageUrl) {
+              break;
+            }
+            log(`Attempt ${i + 1} failed for thumbnail ${randomIndex}. Retrying...`, "WARN");
+            // Reduced wait time from 1000ms to 500ms
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          // If we found a non-Google image URL, break out of the retry loop
           if (nonGoogleImageUrl) {
             break;
           }
-          log(`Attempt ${i + 1} failed. Retrying...`, "WARN");
-          // Optional: wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // If this is not the last attempt, navigate back to the search results page
+          // But only if we have more attempts to make
+          if (attempt < maxAttempts - 1) {
+            log("Navigating back to search results to try a different image...", "INFO");
+            await page.goto(searchUrl, { waitUntil: "networkidle2" });
+            // Re-select the thumbnails
+            const newThumbnails = await page.$$("div[data-lpage]");
+            availableThumbnails = newThumbnails.slice(0, 10);
+          }
         }
 
         if (nonGoogleImageUrl) {
