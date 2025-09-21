@@ -164,9 +164,20 @@ export async function processRequest(req: IncomingMessage, res: ServerResponse, 
         log("Waiting for image thumbnails...", "INFO");
         await page.waitForSelector("div[data-lpage]", { timeout: 5000 });
 
-        // Click on the first thumbnail to open the image viewer
-        log("Clicking on first image thumbnail...", "INFO");
-        await page.click("div[data-lpage]");
+        // Select up to the first 10 thumbnails
+        const thumbnails = await page.$$("div[data-lpage]");
+        const availableThumbnails = thumbnails.slice(0, 10);
+
+        if (availableThumbnails.length === 0) {
+          throw new Error("No image thumbnails found on the page.");
+        }
+
+        // Choose a random thumbnail from the available ones
+        const randomIndex = Math.floor(Math.random() * availableThumbnails.length);
+        const randomThumbnail = availableThumbnails[randomIndex];
+
+        log(`Clicking on a random image thumbnail (index: ${randomIndex})...`, "INFO");
+        await randomThumbnail.click();
 
         let nonGoogleImageUrl: string | null = null;
         for (let i = 0; i < 4; i++) {
