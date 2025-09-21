@@ -35,10 +35,10 @@ describe('Image API Integration', () => {
     }
   });
 
-  describe('GET /?q=car', () => {
+  describe('GET /image?q=car', () => {
     it('should return a valid JPG image when searching for "car"', async () => {
       const response = await request(server)
-        .get('/?q=car')
+        .get('/image?q=car')
         .expect(200)
         .expect('Content-Type', 'image/jpeg');
 

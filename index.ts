@@ -130,8 +130,8 @@ export async function processRequest(req: IncomingMessage, res: ServerResponse, 
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
   const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  // Only handle GET requests to the root path
-  if (url.pathname === "/" && req.method === "GET") {
+  // Only handle GET requests to the /image path
+  if (url.pathname === "/image" && req.method === "GET") {
     const query = url.searchParams.get("q");
 
     if (!query) {

@@ -13,7 +13,7 @@ This is a simple API that searches for images on Google Images using Puppeteer a
 
 ## Endpoints
 
-### GET /
+### GET /image
 
 Search for images on Google Images and return the first result as a JPEG.
 
@@ -22,7 +22,7 @@ Search for images on Google Images and return the first result as a JPEG.
 
 **Example:**
 ```
-GET /?q=cats
+GET /image?q=cats
 ```
 
 **Response:**
@@ -50,9 +50,9 @@ Returns a JPEG image or an error message if no images are found.
    pnpm dev
    ```
 
-4. Test the API:
+3. Test the API:
    ```bash
-   curl "http://localhost:3000?q=cats" --output image.jpg
+   curl "http://localhost:3000/image?q=cats" --output image.jpg
    ```
 
 ## Testing
